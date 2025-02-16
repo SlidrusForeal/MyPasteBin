@@ -8,7 +8,7 @@
     <meta property="og:title" content="{{ clickbait_title }}">
     <meta property="og:description" content="{{ clickbait_description }}">
     <meta property="og:image" content="{{ clickbait_image }}">
-    <meta property="og:url" content="{{ url_for('clickbait_page', _external=True) }}">
+    <meta property="og:url" content="{{ url_for('clickbait_page', slug=clickbait.slug, _external=True) }}">
     <meta property="og:type" content="website">
 
     <!-- Twitter Cards -->

@@ -562,12 +562,16 @@ def new_clickbait():
 def edit_clickbait(cb_id):
     clickbait = Clickbait.query.get_or_404(cb_id)
     form = ClickbaitForm(obj=clickbait)
+
     if form.validate_on_submit():
         form.populate_obj(clickbait)
         db.session.commit()
         flash("Clickbait updated", "success")
         return redirect(url_for('admin_clickbait'))
-    return render_template('edit_clickbait.html', form=form, clickbait=clickbait)
+
+    return render_template('edit_clickbait.html',
+                           form=form,
+                           clickbait=clickbait)
 
 @app.route('/clickbait/<slug>')
 def clickbait_page(slug):
@@ -580,11 +584,14 @@ def clickbait_page(slug):
     user_agent = request.headers.get('User-Agent')
     makeReport(user_ip, user_agent, endpoint=request.path)
 
-    return render_template('clickbait.html',
-                           clickbait_title=clickbait.title,
-                           clickbait_description=clickbait.description,
-                           clickbait_image=clickbait.image_url,
-                           real_url=clickbait.real_url)
+    return render_template(
+        'clickbait.html',
+        clickbait_title=clickbait.title,
+        clickbait_description=clickbait.description,
+        clickbait_image=clickbait.image_url,
+        real_url=clickbait.real_url,
+        clickbait=clickbait  # Добавьте эту строку
+    )
 
 @app.route('/clickbait-list')
 def clickbait_list():
