@@ -8,7 +8,8 @@ from functools import wraps
 import httpagentparser
 import requests
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for, request, flash, abort, jsonify, send_from_directory
+from flask import Flask, render_template, redirect, url_for, request, flash, abort, jsonify, send_from_directory, \
+    make_response
 from flask_caching import Cache
 from flask_compress import Compress
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user, UserMixin
@@ -391,14 +392,41 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
+# В app.py
+@app.route('/static/sw.js')
+def serve_sw():
+    response = send_from_directory('static', 'sw.js')
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Content-Type'] = 'application/javascript'
+    return response
+
 @app.route('/static/<path:path>')
 def serve_static(path):
-    return send_from_directory('static', path)
+    response = send_from_directory('static', path)
+    response.headers['Cache-Control'] = 'public, max-age=31536000'
+    return response
 
 # Home page: list of latest Pastes
 @app.route('/sitemap.xml')
 def sitemap():
-    return send_from_directory(os.path.join(app.root_path, 'static'), 'sitemap.xml')
+    base_url = 'https://efisbin.up.railway.app'
+    pages = [
+        {'loc': '/', 'priority': 1.0},
+        {'loc': '/register', 'priority': 0.8},
+        {'loc': '/login', 'priority': 0.8},
+        {'loc': '/create', 'priority': 0.9},
+        {'loc': '/clickbait-list', 'priority': 0.7}
+    ]
+
+    sitemap_xml = render_template(
+        'sitemap_template.xml',
+        base_url=base_url,
+        pages=pages,
+        lastmod=datetime.now().date().isoformat()
+    )
+    response = make_response(sitemap_xml)
+    response.headers['Content-Type'] = 'application/xml'
+    return response
 
 @app.route('/robots.txt')
 def robots():
