@@ -3,6 +3,8 @@
   <h2>Создать новый Paste</h2>
   <form method="POST">
     {{ form.hidden_tag() }}
+
+    <!-- Заголовок -->
     <div class="mb-3">
       {{ form.title.label(class="form-label") }}
       {{ form.title(class="form-control") }}
@@ -10,17 +12,71 @@
         <div class="text-danger">{{ error }}</div>
       {% endfor %}
     </div>
+
+    <!-- Выбор языка -->
     <div class="mb-3">
-      {{ form.content.label(class="form-label") }}
-      {{ form.content(class="form-control", rows=10) }}
-      {% for error in form.content.errors %}
-        <div class="text-danger">{{ error }}</div>
-      {% endfor %}
+      {{ form.language.label(class="form-label") }}
+      {{ form.language(class="form-select") }}
     </div>
+
+    <!-- Кнопки форматирования -->
+    <div class="editor-tools mb-3">
+        <button type="button" class="btn btn-sm btn-secondary" onclick="insertText('**')">
+            <i class="bi bi-type-bold"></i>
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="insertText('`')">
+            <i class="bi bi-code"></i>
+        </button>
+    </div>
+
+    <!-- Вкладки редактора -->
+    <ul class="nav nav-tabs">
+        <li class="nav-item">
+            <a class="nav-link active" href="#editor" data-bs-toggle="tab">Редактор</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#preview" data-bs-toggle="tab">Предпросмотр</a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane active" id="editor">
+            {{ form.content(class="form-control", rows=10, id="content") }}
+            {% for error in form.content.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="tab-pane" id="preview"></div>
+    </div>
+
+    <!-- Анонимная публикация -->
     <div class="mb-3 form-check">
       {{ form.is_anonymous(class="form-check-input") }}
       {{ form.is_anonymous.label(class="form-check-label") }}
     </div>
+
+    <!-- Кнопка отправки -->
     {{ form.submit(class="btn btn-primary") }}
   </form>
+
+<!-- Добавить скрипт предпросмотра -->
+<script>
+document.getElementById('content').addEventListener('input', function() {
+    fetch('/preview', {
+        method: 'POST',
+        body: JSON.stringify({content: this.value}),
+        headers: {'Content-Type': 'application/json'}
+    }).then(response => response.text())
+      .then(html => document.getElementById('preview').innerHTML = html);
+});
+
+function insertText(text) {
+    const textarea = document.getElementById('content');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    textarea.value = textarea.value.substring(0, start) + text + textarea.value.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    textarea.focus();
+}
+</script>
 {% endblock %}

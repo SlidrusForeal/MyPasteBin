@@ -1,15 +1,55 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Последние Pastes</h1>
-  {% for paste in pastes %}
-    <div class="card mb-3">
-      <div class="card-body">
-        <h5 class="card-title">{{ paste.title if paste.title else "Без заголовка" }}</h5>
-        <p class="card-text"><small class="text-muted">Создано: {{ paste.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
-        <a href="{{ url_for('view_paste', paste_id=paste.id) }}" class="btn btn-primary">Просмотреть</a>
+  <div class="filters-bar mb-4">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <select class="form-select" id="languageFilter">
+            <option value="">Все языки</option>
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="java">Java</option>
+            <option value="cpp">C++</option>
+            <option value="csharp">C#</option>
+            <option value="php">PHP</option>
+            <option value="ruby">Ruby</option>
+            <option value="swift">Swift</option>
+            <option value="go">Go</option>
+            <option value="kotlin">Kotlin</option>
+            <option value="typescript">TypeScript</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="sql">SQL</option>
+            <option value="bash">Bash/Shell</option>
+            <option value="rust">Rust</option>
+            <option value="scala">Scala</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <input type="date" class="form-control" id="dateFilter">
       </div>
     </div>
+  </div>
+
+  {% if pastes %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Заголовок</th>
+          <th>Язык</th>
+          <th>Дата</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for paste in pastes %}
+          <tr>
+            <td>{{ paste.title }}</td>
+            <td>{{ paste.language }}</td>
+            <td>{{ paste.created_at.strftime('%Y-%m-%d') }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   {% else %}
-    <p>Нет пастов.</p>
-  {% endfor %}
+    <p class="text-muted">Нет доступных паст.</p>
+  {% endif %}
 {% endblock %}

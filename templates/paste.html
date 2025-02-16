@@ -1,10 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2>{{ paste.title if paste.title else "Без заголовка" }}</h2>
-  <p><small class="text-muted">Создано: {{ paste.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
-  <pre>{{ paste.content }}</pre>
-  <a href="{{ url_for('index') }}" class="btn btn-secondary">Назад</a>
-  {% if current_user.is_authenticated and (current_user.is_admin or current_user.id == paste.user_id) %}
-    <a href="{{ url_for('request_edit_paste', paste_id=paste.id) }}" class="btn btn-primary">Редактировать</a>
-  {% endif %}
+  <div class="paste-header">
+    <h2>{{ paste.title if paste.title else "Без заголовка" }}</h2>
+    <div class="paste-meta">
+      <span class="badge bg-primary">{{ paste.language|upper if paste.language else 'TEXT' }}</span>
+      <small class="text-muted">{{ paste.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+    </div>
+  </div>
+
+  <div class="code-container mb-4">
+    {{ content|safe }}
+  </div>
+
+  <!-- Социальные кнопки -->
+  <div class="social-actions">
+    <div class="votes">
+      <button class="btn btn-outline-primary" onclick="vote(1)">
+        <i class="bi bi-hand-thumbs-up"></i> {{ paste.likes_count }}
+      </button>
+      <button class="btn btn-outline-danger" onclick="vote(-1)">
+        <i class="bi bi-hand-thumbs-down"></i> {{ paste.dislikes_count }}
+      </button>
+    </div>
+
+    <div class="share-buttons">
+      <a href="https://twitter.com/share?url={{ request.url }}"
+         class="btn btn-twitter"
+         target="_blank">
+         <i class="bi bi-twitter"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Комментарии -->
+  <div class="comments-section">
+    <h4>Комментарии</h4>
+    {% for comment in paste.comments %}
+      <div class="comment">
+        <strong>@{{ comment.author.username }}</strong>
+        <p>{{ comment.text|safe }}</p>
+      </div>
+    {% endfor %}
+  </div>
 {% endblock %}
