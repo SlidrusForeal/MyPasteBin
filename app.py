@@ -13,7 +13,7 @@ from flask_caching import Cache
 from flask_compress import Compress
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user, UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf import FlaskForm, RecaptchaField
+from flask_wtf import FlaskForm
 from sqlalchemy.exc import OperationalError
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms import StringField, PasswordField, SubmitField, TextAreaField, BooleanField, SelectField, SelectMultipleField
@@ -37,10 +37,6 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'default_database_url')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['RECAPTCHA_USE_SSL'] = False  # Или True, в зависимости от вашего сервера
-app.config['RECAPTCHA_PUBLIC_KEY'] = os.getenv('RECAPTCHA_PUBLIC_KEY')
-app.config['RECAPTCHA_PRIVATE_KEY'] = os.getenv('RECAPTCHA_PRIVATE_KEY')
-app.config['RECAPTCHA_OPTIONS'] = {'theme': 'light'}  # Опционально
 compress = Compress()
 compress.init_app(app)
 app.config['COMPRESS_MIMETYPES'] = [
@@ -331,7 +327,6 @@ class RegistrationForm(FlaskForm):
     email = StringField('Email', validators=[Optional(), Email(), Length(max=150)])
     password = PasswordField('Password', validators=[DataRequired(), Length(6, 100)])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
-    recaptcha = RecaptchaField() 
     submit = SubmitField('Register')
 
     def validate_username(self, username):
