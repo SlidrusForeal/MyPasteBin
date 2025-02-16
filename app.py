@@ -57,10 +57,10 @@ cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 # Configuration for EFISbin
-CLICKBAIT_TITLE = "😱 SHOCK! You won't believe what's hidden here..."
-CLICKBAIT_DESCRIPTION = "🔥 Exclusive! This was supposed to stay secret, but it leaked online. Check it out before it's deleted!"
-CLICKBAIT_IMAGE = "https://example.com/image.png"
-REAL_URL = "https://example.com/real"
+CLICKBAIT_TITLE = "😱 ШОК EFIS СОЗДАЛИ СВОЙ PASTEBIN"
+CLICKBAIT_DESCRIPTION = "🔥 Эксклюзив! Это должно было остаться в секрете, но информация просочилась в сеть. Ознакомьтесь с ней, пока она не была удалена!"
+CLICKBAIT_IMAGE = "https://i.ytimg.com/vi/sP08W04c7aM/maxresdefault.jpg"
+REAL_URL = "https://efisbin.up.railway.app/"
 DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', 'default_webhook_url')
 click_count = 0
 
