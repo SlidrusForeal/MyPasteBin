@@ -16,10 +16,10 @@
   <div class="social-actions">
     <div class="votes">
       <button class="btn btn-outline-primary" onclick="vote(1)">
-        <i class="bi bi-hand-thumbs-up"></i> {{ paste.likes_count }}
+          <i class="bi bi-hand-thumbs-up"></i> <span>{{ paste.likes }}</span>
       </button>
       <button class="btn btn-outline-danger" onclick="vote(-1)">
-        <i class="bi bi-hand-thumbs-down"></i> {{ paste.dislikes_count }}
+          <i class="bi bi-hand-thumbs-down"></i> <span>{{ paste.dislikes }}</span>
       </button>
     </div>
 
@@ -42,4 +42,19 @@
       </div>
     {% endfor %}
   </div>
+  <script>
+  function vote(value) {
+      fetch(`/vote/${ {{ paste.id }} }/${value}`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          }
+      })
+      .then(response => response.json())
+      .then(data => {
+          document.querySelector('.bi-hand-thumbs-up').nextSibling.textContent = ` ${data.likes}`;
+          document.querySelector('.bi-hand-thumbs-down').nextSibling.textContent = ` ${data.dislikes}`;
+      });
+  }
+  </script>
 {% endblock %}
