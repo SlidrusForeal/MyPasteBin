@@ -22,6 +22,7 @@ from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationE
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -46,7 +47,8 @@ app.config['COMPRESS_MIN_SIZE'] = 500
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-cache = Cache(app, config={'CACHE_TYPE': 'simple'})
+cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 # ------------------ Configuration for EFISbin ------------------
 CLICKBAIT_TITLE = "😱 SHOCK! You won't believe what's hidden here..."
@@ -333,7 +335,12 @@ class ClickbaitForm(FlaskForm):
         if clickbait:
             raise ValidationError('This slug is already taken. Please choose another.')
 
-limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day", "50 per hour"])
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    storage_uri=REDIS_URL,  # Указываем Redis
+    default_limits=["200 per day", "50 per hour"]
+)
 
 @app.route('/static/<path:path>')
 def serve_static(path):
