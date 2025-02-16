@@ -1,0 +1,27 @@
+:root {
+    --primary-color: #0d6efd;
+    --background-light: #ffffff;
+    --text-light: #212529;
+}
+
+[data-bs-theme="dark"] {
+    --primary-color: #0dcaf0;
+    --background-dark: #212529;
+    --text-dark: #f8f9fa;
+
+    background-color: var(--background-dark);
+    color: var(--text-dark);
+}
+
+.theme-toggle {
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.theme-toggle:hover {
+    transform: rotate(15deg);
+}
+
+.footer {
+  background-color: var(--bs-body-bg) !important;
+}

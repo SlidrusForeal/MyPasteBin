@@ -1,0 +1,13 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /login
+Disallow: /register
+Disallow: /logout
+Disallow: /paste/request_edit/
+Disallow: /admin/paste/edit/
+Disallow: /admin/paste/delete/
+Disallow: /admin/ban/
+Disallow: /admin/unban/
+Disallow: /admin/logs/
+
+Sitemap: /sitemap.xml

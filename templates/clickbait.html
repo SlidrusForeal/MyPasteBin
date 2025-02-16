@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <title>{{ clickbait_title }}</title>
+
+    <!-- Open Graph (OG) Meta Tags -->
+    <meta property="og:title" content="{{ clickbait_title }}">
+    <meta property="og:description" content="{{ clickbait_description }}">
+    <meta property="og:image" content="{{ clickbait_image }}">
+    <meta property="og:url" content="{{ url_for('clickbait_page', _external=True) }}">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ clickbait_title }}">
+    <meta name="twitter:description" content="{{ clickbait_description }}">
+    <meta name="twitter:image" content="{{ clickbait_image }}">
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background: linear-gradient(45deg, #ff416c, #ff4b2b);
+        color: white;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        animation: fadeIn 2s;
+      }
+      h1 {
+        font-size: 3em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      }
+      p {
+        font-size: 1.5em;
+        margin-top: 10px;
+        opacity: 0.9;
+      }
+      .spinner {
+        border: 6px solid rgba(255, 255, 255, 0.3);
+        border-top: 6px solid white;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin-top: 20px;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .button {
+        background: white;
+        color: #ff416c;
+        border: none;
+        padding: 15px 30px;
+        font-size: 1.2em;
+        border-radius: 10px;
+        cursor: pointer;
+        margin-top: 20px;
+        transition: 0.3s;
+      }
+      .button:hover {
+        background: #ff4b2b;
+        color: white;
+      }
+    </style>
+    <script>
+      setTimeout(function() {
+          window.location.href = "{{ real_url }}";
+      }, 5000);
+    </script>
+  </head>
+  <body>
+    <h1>{{ clickbait_title }}</h1>
+    <p>Ты в шоке? 😱 Через 5 секунд ты узнаешь правду!</p>
+    <div class="spinner"></div>
+    <button class="button" onclick="window.location.href='{{ real_url }}'">Узнать правду</button>
+  </body>
+</html>

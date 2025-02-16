@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="auto">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EFISbin - Безопасный обмен кодом</title>
+    <meta name="description" content="EFISbin - безопасная платформа для обмена кодом с функциями пастебинга и сотрудничества">
+    <meta name="theme-color" content="#400404">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Favicon и Web Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <link rel="icon" href="{{ url_for('static', filename='icons/manifest-icon-192.png') }}" type="image/png" sizes="192x192">
+    <link rel="icon" href="{{ url_for('static', filename='icons/manifest-icon-512.png') }}" type="image/png" sizes="512x512">
+    <!-- Предзагрузка критических ресурсов -->
+    <link rel="preload" href="{{ url_for('static', filename='css/theme.css') }}" as="style">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" as="style">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" as="style">
+
+    <!-- Стили -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+          crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+    <!-- Yandex.Metrica -->
+    <meta name="yandex-verification" content="3f6c57c3c593dcd4">
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0];
+            k.async=1;k.src=r;a.parentNode.insertBefore(k,a)
+        })(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+
+        ym(99937579, "init", {
+            clickmap: true,
+            trackLinks: true,
+            accurateTrackBounce: true,
+            webvisor: true
+        });
+    </script>
+    <noscript>
+        <div><img src="https://mc.yandex.ru/watch/99937579" style="position:absolute; left:-9999px;" alt=""></div>
+    </noscript>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='favicon.ico') }}"  alt="Логотип" width="30" height="30" class="d-inline-block align-text-top me-2">
+                EFISbin
+            </a>
+
+            <button class="navbar-toggler" type="button"
+                    aria-label="Toggle navigation"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                               aria-expanded="false" id="userMenu">
+                                {{ current_user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                                <li><a class="dropdown-item" href="{{ url_for('create_paste') }}">Создать Paste</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% if current_user.is_admin %}
+                                    <li><a class="dropdown-item text-danger" href="{{ url_for('admin_panel') }}">Админ-панель</a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Выйти</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">Войти</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">Регистрация</a>
+                        </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <span class="nav-link theme-toggle"
+                              role="button"
+                              tabindex="0"
+                              aria-label="Переключить тему"
+                              onclick="toggleTheme()"
+                              onkeypress="if(event.key === 'Enter') toggleTheme()">
+                            <i class="bi bi-moon-stars"></i>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основное содержимое -->
+    <main class="flex-grow-1 my-4">
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Подвал -->
+        <footer class="footer mt-auto py-3 border-top" style="background-color: var(--bs-body-bg); color: var(--bs-body-color);">
+        <div class="container">
+            <div class="row text-muted">
+                <div class="col-md-6 text-center text-md-start">
+                    © <span id="currentYear">2023</span> EFISbin. Все права защищены.
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <a href="{{ url_for('privacy') }}" class="text-muted text-decoration-none me-3">Политика конфиденциальности</a>
+                    <a href="{{ url_for('terms') }}" class="text-muted text-decoration-none">Условия использования</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Динамическое обновление года
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
+    <script>
+        function toggleTheme() {
+            const htmlEl = document.documentElement;
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            let isDark = htmlEl.getAttribute('data-bs-theme') === 'dark';
+
+            if(localStorage.getItem('theme') === 'system') {
+                isDark = prefersDark;
+            } else {
+                isDark = localStorage.getItem('theme') === 'dark';
+            }
+
+            const newTheme = isDark ? 'light' : 'dark';
+            htmlEl.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Инициализация темы с учетом системных настроек
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'system';
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if(savedTheme === 'system') {
+                document.documentElement.setAttribute('data-bs-theme', prefersDark ? 'dark' : 'light');
+            } else {
+                document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            }
+        }
+        initTheme();
+    </script>
+    <script>
+        // Регистрация Service Worker с обновлениями
+        if ('serviceWorker' in navigator) {
+            const swUrl = '{{ url_for("static", filename="sw.js") }}';
+
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register(swUrl)
+                    .then(registration => {
+                        registration.onupdatefound = () => {
+                            const installingWorker = registration.installing;
+                            installingWorker.onstatechange = () => {
+                                if (installingWorker.state === 'installed') {
+                                    if (navigator.serviceWorker.controller) {
+                                        console.log('New content available; please refresh.');
+                                    } else {
+                                        console.log('Content cached for offline use.');
+                                    }
+                                }
+                            };
+                        };
+                    })
+                    .catch(error => {
+                        console.error('ServiceWorker registration failed:', error);
+                    });
+            });
+
+            // Периодическая проверка обновлений
+            setInterval(() => {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.update();
+                });
+            }, 3600000); // Каждый час
+        }
+    </script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

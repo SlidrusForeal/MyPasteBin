@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>{{ paste.title if paste.title else "Без заголовка" }}</h2>
+  <p><small class="text-muted">Создано: {{ paste.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+  <pre>{{ paste.content }}</pre>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">Назад</a>
+  {% if current_user.is_authenticated and (current_user.is_admin or current_user.id == paste.user_id) %}
+    <a href="{{ url_for('request_edit_paste', paste_id=paste.id) }}" class="btn btn-primary">Редактировать</a>
+  {% endif %}
+{% endblock %}

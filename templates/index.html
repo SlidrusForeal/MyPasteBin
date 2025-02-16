@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Последние Pastes</h1>
+  {% for paste in pastes %}
+    <div class="card mb-3">
+      <div class="card-body">
+        <h5 class="card-title">{{ paste.title if paste.title else "Без заголовка" }}</h5>
+        <p class="card-text"><small class="text-muted">Создано: {{ paste.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+        <a href="{{ url_for('view_paste', paste_id=paste.id) }}" class="btn btn-primary">Просмотреть</a>
+      </div>
+    </div>
+  {% else %}
+    <p>Нет пастов.</p>
+  {% endfor %}
+{% endblock %}

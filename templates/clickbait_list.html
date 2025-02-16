@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Все кликбейт-ссылки</h1>
+<ul class="list-group">
+  {% for cb in clickbaits %}
+  <li class="list-group-item">
+    <h4>{{ cb.title }}</h4>
+    <p>{{ cb.description }}</p>
+    <a href="{{ url_for('clickbait_page', slug=cb.slug) }}" class="btn btn-primary">
+      Перейти по ссылке: /clickbait/{{ cb.slug }}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Управление кликбейтами</h1>
+<a href="{{ url_for('new_clickbait') }}" class="btn btn-primary">Создать новый</a>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Slug</th>
+      <th>Title</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cb in clickbaits %}
+    <tr>
+      <td>{{ cb.slug }}</td>
+      <td>{{ cb.title }}</td>
+      <td>
+        <a href="{{ url_for('edit_clickbait', cb_id=cb.id) }}" class="btn btn-sm btn-warning">Edit</a>
+        <form method="POST" action="{{ url_for('delete_clickbait', cb_id=cb.id) }}" style="display:inline;">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
