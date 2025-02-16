@@ -851,7 +851,4 @@ def create_tables():
                 raise
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.drop_all()  # Удалить все таблицы
-        db.create_all()  # Создать заново с новыми полями
-        app.run(debug=True)
+    app.run(debug=True)
