@@ -524,23 +524,35 @@ def delete_clickbait(cb_id):
     flash('Clickbait successfully deleted', 'success')
     return redirect(url_for('admin_clickbait'))
 
+
 @app.route('/admin/clickbait/new', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def new_clickbait():
     form = ClickbaitForm()
     if form.validate_on_submit():
-        clickbait = Clickbait(
-            slug=form.slug.data,
-            title=form.title.data,
-            description=form.description.data,
-            image_url=form.image_url.data,
-            real_url=form.real_url.data
-        )
-        db.session.add(clickbait)
-        db.session.commit()
-        flash("New clickbait created", "success")
-        return redirect(url_for('admin_clickbait'))
+        try:
+            clickbait = Clickbait(
+                slug=form.slug.data,
+                title=form.title.data,
+                description=form.description.data,
+                image_url=form.image_url.data,
+                real_url=form.real_url.data
+            )
+            db.session.add(clickbait)
+            db.session.commit()
+            flash("Новый кликбейт создан", "success")
+            return redirect(url_for('admin_clickbait'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Ошибка при создании: {str(e)}", "danger")
+            app.logger.error(f"Clickbait creation error: {str(e)}")
+
+    # Отобразите ошибки формы
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(f"{getattr(form, field).label.text}: {error}", "danger")
+
     return render_template('new_clickbait.html', form=form)
 
 # Edit Clickbait

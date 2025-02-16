@@ -3,6 +3,17 @@
   <h2>Создать новый Clickbait</h2>
   <form method="POST">
     {{ form.hidden_tag() }}
+
+    <!-- Добавлено поле Slug -->
+    <div class="mb-3">
+      {{ form.slug.label(class="form-label") }}
+      {{ form.slug(class="form-control", placeholder="unique-identifier") }}
+      {% for error in form.slug.errors %}
+        <div class="text-danger">{{ error }}</div>
+      {% endfor %}
+      <small class="form-text text-muted">Уникальный идентификатор (латинские буквы, цифры и дефисы)</small>
+    </div>
+
     <div class="mb-3">
       {{ form.title.label(class="form-label") }}
       {{ form.title(class="form-control") }}
@@ -10,6 +21,7 @@
         <div class="text-danger">{{ error }}</div>
       {% endfor %}
     </div>
+
     <div class="mb-3">
       {{ form.description.label(class="form-label") }}
       {{ form.description(class="form-control") }}
@@ -17,20 +29,23 @@
         <div class="text-danger">{{ error }}</div>
       {% endfor %}
     </div>
+
     <div class="mb-3">
       {{ form.image_url.label(class="form-label") }}
-      {{ form.image_url(class="form-control") }}
+      {{ form.image_url(class="form-control", placeholder="https://example.com/image.jpg") }}
       {% for error in form.image_url.errors %}
         <div class="text-danger">{{ error }}</div>
       {% endfor %}
     </div>
+
     <div class="mb-3">
       {{ form.real_url.label(class="form-label") }}
-      {{ form.real_url(class="form-control") }}
+      {{ form.real_url(class="form-control", placeholder="https://example.com/real-content") }}
       {% for error in form.real_url.errors %}
         <div class="text-danger">{{ error }}</div>
       {% endfor %}
     </div>
+
     {{ form.submit(class="btn btn-primary") }}
   </form>
 {% endblock %}
