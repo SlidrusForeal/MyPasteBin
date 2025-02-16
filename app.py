@@ -689,6 +689,4 @@ def create_tables():
                 raise
 
 if __name__ == '__main__':
-    with app.app_context():
-        create_tables()  # Создание таблиц перед запуском
-    app.run(debug=True)
+    app.run()
