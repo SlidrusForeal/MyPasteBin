@@ -776,7 +776,7 @@ def create_paste():
         paste.tags = [Tag.query.get(tag_id) for tag_id in form.tags.data]
         db.session.commit()
         flash('New Paste successfully created!', 'success')
-        return redirect(url_for('index'))
+        return redirect(url_for('view_paste', paste_id=paste.id))
     form.tags.choices = [(tag.id, tag.name) for tag in Tag.query.all()]
     return render_template('create.html', form=form)
 
@@ -787,7 +787,7 @@ def view_paste(paste_id):
     lexer = get_lexer_by_name(paste.language, stripall=True)
     formatter = HtmlFormatter(linenos=True, cssclass="codehilite")
     highlighted = highlight(paste.content, lexer, formatter)
-    return render_template('paste.html', paste=paste, content=highlighted)
+    return render_template('paste.html', paste=paste, content=paste.content)
 
 # Search by titles/content
 @app.route('/search')
