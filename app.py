@@ -18,10 +18,9 @@ from flask_wtf import FlaskForm, RecaptchaField
 from sqlalchemy.exc import OperationalError
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms import StringField, PasswordField, SubmitField, TextAreaField, BooleanField
-from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
+from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, Optional
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-
 
 # Load environment variables from .env file
 load_dotenv()
@@ -231,7 +230,7 @@ def ip_logger(event="New Visit", custom_data=None):
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=True)  # Make email optional
     password_hash = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)  # Admin flag
     is_banned = db.Column(db.Boolean, default=False)  # Ban flag
@@ -286,7 +285,7 @@ def load_user(user_id):
 # Registration form
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(3, 150)])
-    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=150)])
+    email = StringField('Email', validators=[Optional(), Email(), Length(max=150)])  # Make email optional
     password = PasswordField('Password', validators=[DataRequired(), Length(6, 100)])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     recaptcha = RecaptchaField()
@@ -298,9 +297,10 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('This username is already taken. Please choose another.')
 
     def validate_email(self, email):
-        user = User.query.filter_by(email=email.data).first()
-        if user:
-            raise ValidationError('This email is already registered.')
+        if email.data:  # Check only if email is provided
+            user = User.query.filter_by(email=email.data).first()
+            if user:
+                raise ValidationError('This email is already registered.')
 
 # Login form
 class LoginForm(FlaskForm):
@@ -613,17 +613,15 @@ def register():
         return redirect(url_for('index'))
     form = RegistrationForm()
     if form.validate_on_submit():
-        try:
-            user = User(username=form.username.data, email=form.email.data)
-            user.set_password(form.password.data)
-            db.session.add(user)
-            db.session.commit()
-            flash('Регистрация успешна! Теперь войдите.', 'success')
-            return redirect(url_for('login'))
-        except Exception as e:
-            db.session.rollback()  # Откат транзакции
-            app.logger.error(f"Ошибка регистрации: {e}")
-            flash('Ошибка регистрации. Попробуйте позже.', 'danger')
+        user = User(
+            username=form.username.data,
+            email=form.email.data if form.email.data else None  # Save None if email is empty
+        )
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('Registration successful! Please log in.', 'success')
+        return redirect(url_for('login'))
     return render_template('register.html', form=form)
 
 # Login page
