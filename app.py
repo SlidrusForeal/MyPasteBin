@@ -268,6 +268,11 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+paste_tags = db.Table('paste_tags',
+    db.Column('paste_id', db.Integer, db.ForeignKey('paste.id')),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
+)
+
 # Paste model
 class Paste(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -277,6 +282,7 @@ class Paste(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     is_anonymous = db.Column(db.Boolean, default=False)  # Anonymous posting
     language = db.Column(db.String(50), default='text')  # Syntax highlighting language
+    tags = db.relationship('Tag', secondary=paste_tags, backref='pastes')  # Add this line
 
 class AdminLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -298,11 +304,6 @@ class Clickbait(db.Model):
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
-
-paste_tags = db.Table('paste_tags',
-    db.Column('paste_id', db.Integer, db.ForeignKey('paste.id')),
-    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
-)
 
 # Vote model
 class Vote(db.Model):
@@ -769,10 +770,10 @@ def create_paste():
             content=safe_html_content,
             author=current_user,
             is_anonymous=form.is_anonymous.data,
-            language=form.language.data,
-            tags=[Tag.query.get(tag_id) for tag_id in form.tags.data]
+            language=form.language.data  # Remove 'tags=' from here
         )
         db.session.add(paste)
+        paste.tags = [Tag.query.get(tag_id) for tag_id in form.tags.data]
         db.session.commit()
         flash('New Paste successfully created!', 'success')
         return redirect(url_for('index'))
