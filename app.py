@@ -289,7 +289,7 @@ class RegistrationForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=150)])
     password = PasswordField('Password', validators=[DataRequired(), Length(6, 100)])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
-    recaptcha = RecaptchaField()
+    #recaptcha = RecaptchaField()
     submit = SubmitField('Register')
 
     def validate_username(self, username):
@@ -606,20 +606,24 @@ def generate_link():
     else:
         return "Clickbait not configured.", 404
 
-# Registration page
 @app.route('/register', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")  # Limit registration to 5 requests per minute
+@limiter.limit("5 per minute")
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     form = RegistrationForm()
     if form.validate_on_submit():
-        user = User(username=form.username.data, email=form.email.data)
-        user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.commit()
-        flash('Registration successful! Please log in.', 'success')
-        return redirect(url_for('login'))
+        try:
+            user = User(username=form.username.data, email=form.email.data)
+            user.set_password(form.password.data)
+            db.session.add(user)
+            db.session.commit()
+            flash('Регистрация успешна! Теперь войдите.', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()  # Откат транзакции
+            app.logger.error(f"Ошибка регистрации: {e}")
+            flash('Ошибка регистрации. Попробуйте позже.', 'danger')
     return render_template('register.html', form=form)
 
 # Login page
@@ -689,4 +693,4 @@ def create_tables():
                 raise
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
