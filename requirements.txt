@@ -7,4 +7,4 @@ requests==2.31.0
 gunicorn==21.2.0
 psycopg2-binary==2.9.9
 httpagentparser==1.9.2
-flask-compress==1.14g
+flask-compress==1.14
